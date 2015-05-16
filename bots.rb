@@ -1,4 +1,6 @@
+require 'fileutils'
 require 'twitter_ebooks'
+
 
 # Information about a particular Twitter user we know
 class UserInfo
@@ -13,6 +15,7 @@ class UserInfo
     @pesters_left = 1
   end
 end
+
 
 class ERWEbooksBot < Ebooks::Bot
   attr_accessor :original, :model, :model_path
@@ -31,9 +34,15 @@ class ERWEbooksBot < Ebooks::Bot
   def on_startup
     load_model!
 
-    scheduler.cron '0 0 * * *' do
-      # Each day at midnight, post a single tweet
+    scheduler.cron '23 6-23 * * *' do
+      # Post a tweet 23 minutes after every fourth hour.
       tweet(model.make_statement)
+    end
+
+    scheduler.cron '0 5 * * *' do
+      # Every day at 5am update the corpus
+      archive!
+      load_model!
     end
   end
 
@@ -118,12 +127,17 @@ class ERWEbooksBot < Ebooks::Bot
 
   private
   def load_model!
-    return if @model
-
     @model_path ||= "model/#{original}.model"
-
     log "Loading model #{model_path}"
     @model = Ebooks::Model.load(model_path)
+  end
+
+  private
+  def archive!
+      archive_path = "model/#{original}.json"
+      log "Archiving tweets #{archive_path}"
+      Ebooks::Archive.new(@original, archive_path).sync
+      Ebooks::Model.consume(archive_path).save(model_path)
   end
 end
 
