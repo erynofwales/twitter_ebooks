@@ -32,19 +32,18 @@ class ERWEbooksBot < Ebooks::Bot
   def top20;  @top20  ||= model.keywords.take(20); end
 
   def on_startup
+    log "Starting up bot for @#{original} at #{Time.now}"
+
     @model_path ||= "model/#{original}.model"
-    @archive_path = "model/#{original}.json"
+    @archive_path ||= "model/#{original}.json"
 
-    archive!
-    load_model!
-
-    scheduler.cron '23 6-23 * * *' do
-      # Post a tweet 23 minutes after every fourth hour.
+    # Post a tweet every hour
+    scheduler.every '2h' do
       tweet(model.make_statement)
     end
 
-    scheduler.cron '0 5 * * *' do
-      # Every day at 5am update the corpus
+    # Every day at 5am update the corpus
+    scheduler.every '24h', :first => :now do
       archive!
       load_model!
     end
