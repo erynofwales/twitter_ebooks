@@ -138,7 +138,7 @@ class ERWEbooksBot < Ebooks::Bot
       archive_path = "model/#{original}.json"
       log "Archiving tweets #{archive_path}"
       Ebooks::Archive.new(@original, archive_path).sync
-      Ebooks::Model.consume(archive_path).save(@model_path)
+      Ebooks::Model.consume(archive_path).save(model_path)
   end
 end
 
