@@ -32,6 +32,9 @@ class ERWEbooksBot < Ebooks::Bot
   def top20;  @top20  ||= model.keywords.take(20); end
 
   def on_startup
+    @model_path ||= "model/#{original}.model"
+    @archive_path = "model/#{original}.json"
+
     archive!
     load_model!
 
@@ -128,17 +131,15 @@ class ERWEbooksBot < Ebooks::Bot
 
   private
   def load_model!
-    @model_path ||= "model/#{original}.model"
-    log "Loading model #{model_path}"
-    @model = Ebooks::Model.load(model_path)
+    log "Loading model #{@model_path}"
+    @model = Ebooks::Model.load(@model_path)
   end
 
   private
   def archive!
-      archive_path = "model/#{original}.json"
-      log "Archiving tweets #{archive_path}"
-      Ebooks::Archive.new(@original, archive_path).sync
-      Ebooks::Model.consume(archive_path).save(model_path)
+      log "Archiving tweets #{@archive_path}"
+      Ebooks::Archive.new(@original, @archive_path).sync
+      Ebooks::Model.consume(@archive_path).save(@model_path)
   end
 end
 
