@@ -32,6 +32,7 @@ class ERWEbooksBot < Ebooks::Bot
   def top20;  @top20  ||= model.keywords.take(20); end
 
   def on_startup
+    archive!
     load_model!
 
     scheduler.cron '23 6-23 * * *' do
@@ -137,7 +138,7 @@ class ERWEbooksBot < Ebooks::Bot
       archive_path = "model/#{original}.json"
       log "Archiving tweets #{archive_path}"
       Ebooks::Archive.new(@original, archive_path).sync
-      Ebooks::Model.consume(archive_path).save(model_path)
+      Ebooks::Model.consume(archive_path).save(@model_path)
   end
 end
 
