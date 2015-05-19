@@ -37,12 +37,12 @@ class ERWEbooksBot < Ebooks::Bot
     @model_path ||= "model/#{original}.model"
     @archive_path ||= "model/#{original}.json"
 
-    # Post a tweet every hour
+    # Post a tweet every two hours
     scheduler.every '2h' do
       tweet(model.make_statement)
     end
 
-    # Every day at 5am update the corpus
+    # Update the corpus every day
     scheduler.every '24h', :first => :now do
       archive!
       load_model!
