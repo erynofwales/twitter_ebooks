@@ -1,4 +1,4 @@
-source 'http://rubygems.org'
-ruby '2.2.0'
+source 'https://rubygems.org'
 
-gem 'twitter_ebooks'
+# Specify your gem's dependencies in twitter_ebooks.gemspec
+gemspec

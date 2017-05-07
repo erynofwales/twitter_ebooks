@@ -1,1 +1,5 @@
-corpus/
+.*.swp
+Gemfile.lock
+pkg
+.yardoc
+doc
