@@ -21,7 +21,7 @@ Note that 3.0 is not backwards compatible with 2.x, so upgrade carefully! In par
 
 ## Installation
 
-Requires Ruby 2.0+
+Requires Ruby 2.1+. Ruby 2.3+ is recommended.
 
 ```bash
 gem install twitter_ebooks
@@ -77,6 +77,16 @@ class MyBot < Ebooks::Bot
   def on_timeline(tweet)
     # Reply to a tweet in the bot's timeline
     # reply(tweet, meta(tweet).reply_prefix + "nice tweet")
+  end
+
+  def on_favorite(user, tweet)
+    # Follow user who just favorited bot's tweet
+    # follow(user.screen_name)
+  end
+
+  def on_retweet(tweet)
+    # Follow user who just retweeted bot's tweet
+    # follow(tweet.user.screen_name)
   end
 end
 
@@ -135,10 +145,10 @@ The secondary function is the "interesting keywords" list. For example, I use th
 
 ``` ruby
 top100 = model.keywords.take(100)
-tokens = Ebooks::NLP.tokenize(tweet[:text])
+tokens = Ebooks::NLP.tokenize(tweet.text)
 
 if tokens.find { |t| top100.include?(t) }
-  bot.favorite(tweet[:id])
+  favorite(tweet)
 end
 ```
 

@@ -36,7 +36,7 @@ describe Ebooks::Model do
     report2 = MemoryUsage.report do
       model = Ebooks::Model.load(file.path)
     end
-    expect(report2.total_memsize).to be < 3000000
+    expect(report2.total_memsize).to be < 4000000
 
     expect(model.tokens[0]).to be_a String
     expect(model.sentences[0][0]).to be_a Fixnum
@@ -69,6 +69,20 @@ describe Ebooks::Model do
       expect(model.sentences.count).to eq 1
 
       file.unlink
+    end
+
+    it 'handles strange unicode edge-cases' do
+      file = Tempfile.new('unicode')
+      file.write("💞\n💞")
+      file.close
+
+      model = Ebooks::Model.consume(file.path)
+      expect(model.mentions.count).to eq 0
+      expect(model.sentences.count).to eq 2
+
+      file.unlink
+
+      p model.make_statement
     end
   end
 end

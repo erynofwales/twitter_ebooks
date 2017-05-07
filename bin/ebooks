@@ -25,9 +25,12 @@ Usage:
      ebooks auth
      ebooks consume <corpus_path> [corpus_path2] [...]
      ebooks consume-all <model_name> <corpus_path> [corpus_path2] [...]
+     ebooks append <model_name> <corpus_path>
      ebooks gen <model_path> [input]
      ebooks archive <username> [path]
+     ebooks sync <botname> [username]
      ebooks tweet <model_path> <botname>
+     ebooks version
 STR
 
   def self.help(command=nil)
@@ -91,7 +94,9 @@ STR
       filename = File.basename(path)
       shortname = filename.split('.')[0..-2].join('.')
 
+      FileUtils.mkdir_p(File.join(APP_PATH, 'model'))
       outpath = File.join(APP_PATH, 'model', "#{shortname}.model")
+
       Ebooks::Model.consume(path).save(outpath)
       log "Corpus consumed to #{outpath}"
     end
@@ -114,6 +119,24 @@ STR
     Ebooks::Model.consume_all(paths).save(outpath)
     log "Corpuses consumed to #{outpath}"
   end
+
+  HELP.append = <<-STR
+    Usage: ebooks append <model_name> <corpus_path>
+
+    Process then append the provided corpus to the model
+    instead of overwriting.
+  STR
+
+  def self.append(name, path)
+    if !name || !path
+      help :append
+      exit 1
+    end
+
+    Ebooks::Model.consume(path).append(File.join(APP_PATH,'model',"#{name}.model"))
+    log "Corpus appended to #{name}.model"
+  end
+
 
   HELP.jsonify = <<-STR
     Usage: ebooks jsonify <tweets.csv> [tweets.csv2] [...]
@@ -189,6 +212,11 @@ STR
     Output defaults to corpus/<username>.json
     Due to API limitations, this can only receive up to ~3000 tweets
     into the past.
+
+    The first time you run archive, you will need to enter the auth
+    details of some account to use for accessing the API. This info
+    will then be stored in ~/.ebooksrc for later use, and can be
+    modified there if needed.
   STR
 
   def self.archive(username, outpath=nil)
@@ -198,6 +226,25 @@ STR
     end
 
     Ebooks::Archive.new(username, outpath).sync
+  end
+
+    HELP.sync = <<-STR
+    Usage: ebooks sync <botname> <username>
+
+    Copies and flips <username>'s avatar and cover photo, uploading them to <botname>'s profile.
+
+    Stores saved avatar's and covers in image/.
+
+  STR
+
+  def self.sync(botname, username)
+    if botname.nil?
+      help :sync
+      exit 1
+    end
+
+    load File.join(APP_PATH, 'bots.rb')
+    Ebooks::Sync::run(botname, username)
   end
 
   HELP.tweet = <<-STR
@@ -217,6 +264,10 @@ STR
     model = Ebooks::Model.load(modelpath)
     statement = model.make_statement
     bot = Ebooks::Bot.get(botname)
+    if bot.nil?
+      log "No such bot configured in bots.rb: #{botname}"
+      exit 1
+    end
     bot.configure
     bot.tweet(statement)
   end
@@ -259,8 +310,8 @@ STR
     access_token = request_token.get_access_token(oauth_verifier: pin)
 
     log "Account authorized successfully. Make sure to put these in your bots.rb!\n" +
-         "  access token: #{access_token.token}\n" +
-         "  access token secret: #{access_token.secret}"
+         "  bot.access_token = \"#{access_token.token}\"\n" +
+         "  bot.access_token_secret = \"#{access_token.secret}\""
   end
 
   HELP.console = <<-STR
@@ -273,6 +324,17 @@ STR
   def self.console
     load_bots
     require 'pry'; Ebooks.module_exec { pry }
+  end
+
+  HELP.version = <<-STR
+    Usage: ebooks version
+
+    Shows you twitter_ebooks' version number.
+  STR
+
+  def self.version
+    require File.expand_path('../../lib/twitter_ebooks/version', __FILE__)
+    log Ebooks::VERSION
   end
 
   HELP.start = <<-STR
@@ -368,8 +430,10 @@ STR
     when "new" then new(args[1])
     when "consume" then consume(args[1..-1])
     when "consume-all" then consume_all(args[1], args[2..-1])
+    when "append" then append(args[1],args[2])
     when "gen" then gen(args[1], args[2..-1].join(' '))
     when "archive" then archive(args[1], args[2])
+    when "sync" then sync(args[1], args[2])
     when "tweet" then tweet(args[1], args[2])
     when "jsonify" then jsonify(args[1..-1])
     when "auth" then auth
@@ -378,6 +442,7 @@ STR
     when "start" then start(args[1])
     when "s" then start(args[1])
     when "help" then help(args[1])
+    when "version" then version
     else
       log "No such command '#{args[0]}'"
       help

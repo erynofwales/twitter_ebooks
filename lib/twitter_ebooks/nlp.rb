@@ -1,6 +1,7 @@
 # encoding: utf-8
 require 'fast-stemmer'
 require 'highscore'
+require 'htmlentities'
 
 module Ebooks
   module NLP
@@ -13,10 +14,10 @@ module Ebooks
     # to be using it all of the time
 
     # Lazily loads an array of stopwords
-    # Stopwords are common English words that should often be ignored
+    # Stopwords are common words that should often be ignored
     # @return [Array<String>]
     def self.stopwords
-      @stopwords ||= File.read(File.join(DATA_PATH, 'stopwords.txt')).split
+      @stopwords ||= File.exists?('stopwords.txt') ? File.read('stopwords.txt').split : []
     end
 
     # Lazily loads an array of known English nouns
@@ -42,7 +43,6 @@ module Ebooks
     # Lazily load HTML entity decoder
     # @return [HTMLEntities]
     def self.htmlentities
-      require 'htmlentities'
       @htmlentities ||= HTMLEntities.new
     end
 
@@ -99,7 +99,7 @@ module Ebooks
         #set :vowels, 1                     # => default: 0 = not considered
         #set :consonants, 5                 # => default: 0 = not considered
         #set :ignore_case, true             # => default: false
-        set :word_pattern, /(?<!@)(?<=\s)[\w']+/           # => default: /\w+/
+        set :word_pattern, /(?<!@)(?<=\s)[\p{Word}']+/           # => default: /\w+/
         #set :stemming, true                # => default: false
       end
 

@@ -2,6 +2,14 @@
 require 'twitter'
 require 'rufus/scheduler'
 
+# Monkeypatch hack to fix upstream dependency issue
+# https://github.com/sferik/twitter/issues/709
+class HTTP::URI
+  def port
+    443 if self.https?
+  end
+end
+
 module Ebooks
   class ConfigurationError < Exception
   end
@@ -29,12 +37,10 @@ module Ebooks
       usertweets = @tweets.select { |t| t.user.screen_name.downcase == username.downcase }
 
       if usertweets.length > 2
-        if (usertweets[-1].created_at - usertweets[-3].created_at) < 10
+        if username.include?('ebooks') || (usertweets[-1].created_at - usertweets[-3].created_at) < 12
           return true
         end
       end
-
-      username.include?("ebooks")
     end
 
     # Figure out whether to keep this user in the reply prefix
@@ -162,7 +168,7 @@ module Ebooks
     # @param username [String]
     # @return [Ebooks::Bot]
     def self.get(username)
-      all.find { |bot| bot.username == username }
+      all.find { |bot| bot.username.downcase == username.downcase }
     end
 
     # Logs info to stdout in the context of this bot
@@ -261,6 +267,12 @@ module Ebooks
       when Twitter::Tweet
         return unless ev.text # If it's not a text-containing tweet, ignore it
         return if ev.user.id == @user.id # Ignore our own tweets
+
+        if ev.retweet? && ev.retweeted_tweet.user.id == @user.id
+          # Someone retweeted our tweet!
+          fire(:retweet, ev)
+          return
+        end
 
         meta = meta(ev)
 
@@ -363,7 +375,7 @@ module Ebooks
     # Delay an action for a variable period of time
     # @param range [Range, Integer] range of seconds to choose for delay
     def delay(range=@delay_range, &b)
-      time = range.to_a.sample unless range.is_a? Integer
+      time = rand(range) unless range.is_a? Integer
       sleep time
       b.call
     end

@@ -1,12 +1,15 @@
 # encoding: utf-8
 
 module Ebooks
-  # This generator uses data identical to a markov model, but
+  # This generator uses data similar to a Markov model, but
   # instead of making a chain by looking up bigrams it uses the
-  # positions to randomly replace suffixes in one sentence with
-  # matching suffixes in another
+  # positions to randomly replace token array suffixes in one sentence
+  # with matching suffixes in another
   class SuffixGenerator
     # Build a generator from a corpus of tikified sentences
+    # "tikis" are token indexes-- a way of representing words
+    # and punctuation as their integer position in a big array
+    # of such tokens
     # @param sentences [Array<Array<Integer>>]
     # @return [SuffixGenerator]
     def self.build(sentences)
@@ -14,11 +17,14 @@ module Ebooks
     end
 
     def initialize(sentences)
-      @sentences = sentences.reject { |s| s.length < 2 }
+      @sentences = sentences.reject { |s| s.empty? }
       @unigrams = {}
       @bigrams = {}
 
       @sentences.each_with_index do |tikis, i|
+        if (i % 10000 == 0) then
+          log ("Building: sentence #{i} of #{sentences.length}")
+        end
         last_tiki = INTERIM
         tikis.each_with_index do |tiki, j|
           @unigrams[last_tiki] ||= []
@@ -41,7 +47,6 @@ module Ebooks
 
       self
     end
-
 
     # Generate a recombined sequence of tikis
     # @param passes [Integer] number of times to recombine
@@ -86,7 +91,11 @@ module Ebooks
           break if variant
         end
 
-        tikis = variant if variant
+        # If we failed to produce a variation from any alternative, there
+        # is no use running additional passes-- they'll have the same result.
+        break if variant.nil?
+
+        tikis = variant
       end
 
       tikis
